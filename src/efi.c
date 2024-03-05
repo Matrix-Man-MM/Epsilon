@@ -2,12 +2,16 @@
 #include "efi.h"
 
 EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* cout = NULL;
-void* cin = NULL;
+EFI_SIMPLE_TEXT_INPUT_PROTOCOL* cin = NULL;
+EFI_BOOT_SERVICES* bs;
+EFI_HANDLE image = NULL;
 
-void init_globals(EFI_SYSTEM_TABLE* sys_table)
+void init_globals(EFI_HANDLE handle, EFI_SYSTEM_TABLE* sys_table)
 {
 	cout = sys_table->ConOut;
 	cin = sys_table->ConIn;
+	bs = sys_table->BootServices;
+	image = handle;
 }
 
 bool putint(INT32 n)
@@ -127,29 +131,96 @@ end:
 	return result;
 }
 
+EFI_INPUT_KEY getkey(void)
+{
+	EFI_EVENT events[1];
+	EFI_INPUT_KEY key;
+
+	key.ScanCode = 0;
+	key.UnicodeChar = u'\0';
+
+	events[0] = cin->WaitForKey;
+	UINTN index = 0;
+	bs->WaitForEvent(1, events, &index);
+
+	if (index == 0)
+	{
+		cin->ReadKeyStroke(cin, &key);
+		return key;
+	}
+
+	return key;
+}
+
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
 {
-	(void)ImageHandle;
-	(void)SystemTable;
-
-	init_globals(SystemTable);
+	init_globals(ImageHandle, SystemTable);
 
 	cout->Reset(cout, false);
 	cout->SetAttribute(cout, EFI_TEXT_ATTR(EFI_GREEN, EFI_BLACK));
-	cout->ClearScreen(cout);
 
-	printf(u"EPSILON UEFI BOOTLOADER\r\n");
+	bool is_running = true;
+	while (is_running)
+	{
+		cout->ClearScreen(cout);
 
-	printf(u"Hex Test: %x\r\n", (UINTN)0x1234ABCD);
-	printf(u"Negative Test: %d\r\n", (INT32)-12345);
+		printf(u"Text Mode Info\r\n-------------------\r\n");
+		UINTN max_cols = 0;
+		UINTN max_rows = 0;
+		cout->QueryMode(cout, cout->Mode->Mode, &max_cols, &max_rows);
+		printf(u"Max Mode: %d\r\nCurrent Mode: %d\r\nAttribute: %x\r\nCursorColumn: %d\r\nCursorRow: %d\r\nCursorVisible: %d\r\nColumns: %d\r\nRows: %d\r\n\r\n", cout->Mode->MaxMode, cout->Mode->Mode, cout->Mode->Attribute, cout->Mode->CursorColumn, cout->Mode->CursorRow, cout->Mode->CursorVisible, max_cols, max_rows);
 
-	printf(u"Current Text Mode\r\n-------------------\r\n");
-	UINTN max_cols = 0;
-	UINTN max_rows = 0;
+		printf(u"Available Text Modes\r\n--------------------------\r\n");
 
-	cout->QueryMode(cout, cout->Mode->Mode, &max_cols, &max_rows);
+		const INT32 max = cout->Mode->MaxMode;
+		for (INT32 i = 0; i < max; i++)
+		{
+			cout->QueryMode(cout, i, &max_cols, &max_rows);
+			printf(u"Mode #: %d, %dx%d\r\n", i, max_cols, max_rows);
+		}
 
-	printf(u"Max Mode: %d\r\nCurrent Mode: %d\r\nAttribute: %x\r\nCursorColumn: %d\r\nCursorRow: %d\r\nCursorVisible: %d\r\nColumns: %d\r\nRows: %d\r\n", cout->Mode->MaxMode, cout->Mode->Mode, cout->Mode->Attribute, cout->Mode->CursorColumn, cout->Mode->CursorRow, cout->Mode->CursorVisible, max_cols, max_rows);
+		while (1)
+		{
+			static UINTN current_mode = 0;
+			current_mode = cout->Mode->Mode;
 
-	while (1) ;
+			for (UINTN i = 0; i < 79; i++)
+				printf(u" ");
+
+			printf(u"\rSelect Text Mode # (0-%d): %d", max, current_mode);
+
+			cout->SetCursorPosition(cout, cout->Mode->CursorColumn-1, cout->Mode->CursorRow);
+
+			EFI_INPUT_KEY key = getkey();
+
+			CHAR16 cbuf[2];
+			cbuf[0] = key.UnicodeChar;
+			cbuf[1] = u'\0';
+
+			printf(u"%s ", cbuf);
+
+			if (key.ScanCode == 0x17)
+			{
+				printf(u"\r\nShutting Down...\r\n");
+				while (1);
+			}
+
+			current_mode = key.UnicodeChar - u'0';
+			EFI_STATUS status = cout->SetMode(cout, current_mode);
+
+			if (EFI_ERROR(status))
+			{
+				if (status == EFI_DEVICE_ERROR)
+					printf(u"ERROR: %x; Device Error\r\n", status);
+				else if (status == EFI_UNSUPPORTED)
+					printf(u"ERROR: %x; Mode # Invalid\r\n", status);
+
+				getkey();
+			}
+			else
+				break;
+		}
+	}
+
+	return EFI_SUCCESS;
 }
