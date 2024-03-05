@@ -52,6 +52,13 @@ typedef UINTN EFI_TPL;
 
 #define EFI_SUCCESS 0ULL
 
+#define TOP_BIT 0x8000000000000000
+#define ENCODE_ERROR(x) (TOP_BIT | (x))
+#define EFI_ERROR(x) ((INTN)((UINTN)(x)) < 0)
+
+#define EFI_UNSUPPORTED ENCODE_ERROR(3)
+#define EFI_DEVICE_ERROR ENCODE_ERROR(7)
+
 typedef struct EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
 
 typedef EFI_STATUS (EFIAPI* EFI_TEXT_RESET) (IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* This, IN BOOLEAN ExtendedVerification);
@@ -90,6 +97,7 @@ typedef EFI_STATUS (EFIAPI* EFI_TEXT_SET_ATTRIBUTE) (IN EFI_SIMPLE_TEXT_OUTPUT_P
 #define EFI_TEXT_ATTR(Foreground, Background) ((Foreground) | ((Background) << 4))
 
 typedef EFI_STATUS (EFIAPI* EFI_TEXT_CLEAR_SCREEN) (IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* This);
+typedef EFI_STATUS (EFIAPI* EFI_TEXT_SET_CURSOR_POSITION) (IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* This, IN UINTN Column, IN UINTN Row);
 
 typedef struct
 {
@@ -110,10 +118,31 @@ typedef struct EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
 	EFI_TEXT_SET_MODE SetMode;
 	EFI_TEXT_SET_ATTRIBUTE SetAttribute;
 	EFI_TEXT_CLEAR_SCREEN ClearScreen;
-	void* SetCursorPosition;
+	EFI_TEXT_SET_CURSOR_POSITION SetCursorPosition;
 	void* EnableCursor;
 	SIMPLE_TEXT_OUTPUT_MODE* Mode;
 } EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
+
+typedef struct EFI_SIMPLE_TEXT_INPUT_PROTOCOL EFI_SIMPLE_TEXT_INPUT_PROTOCOL;
+
+typedef EFI_STATUS (EFIAPI* EFI_INPUT_RESET) (IN EFI_SIMPLE_TEXT_INPUT_PROTOCOL* This, IN BOOLEAN ExtendedVerification);
+
+typedef struct
+{
+	UINT16 ScanCode;
+	CHAR16 UnicodeChar;
+} EFI_INPUT_KEY;
+
+typedef EFI_STATUS (EFIAPI* EFI_INPUT_READ_KEY) (IN EFI_SIMPLE_TEXT_INPUT_PROTOCOL* This, OUT EFI_INPUT_KEY* Key);
+
+typedef struct EFI_SIMPLE_TEXT_INPUT_PROTOCOL
+{
+	EFI_INPUT_RESET Reset;
+	EFI_INPUT_READ_KEY ReadKeyStroke;
+	EFI_EVENT WaitForKey;
+} EFI_SIMPLE_TEXT_INPUT_PROTOCOL;
+
+typedef EFI_STATUS (EFIAPI* EFI_WAIT_FOR_EVENT) (IN UINTN NumberOfEvents, IN EFI_EVENT* Event, OUT UINTN* Index);
 
 typedef struct
 {
@@ -127,16 +156,65 @@ typedef struct
 typedef struct
 {
 	EFI_TABLE_HEADER Hdr;
+	void* RaiseTPL;
+	void* RestoreTPL;
+	void* AllocatePages;
+	void* FreePages;
+	void* GetMemoryMap;
+	void* AllocatePool;
+	void* FreePool;
+	void* CreateEvent;
+	void* SetTimer;
+	EFI_WAIT_FOR_EVENT WaitForEvent;
+	void* SignalEvent;
+	void* CloseEvent;
+	void* CheckEvent;
+	void* InstallProtocolInterface;
+	void* ReinstallProtocolInterface;
+	void* UninstallProtocolInterface;
+	void* HandleProtocol;
+	void* Reserved;
+	void* RegisterProtocolNotify;
+	void* LocateHandle;
+	void* LocateDevicePath;
+	void* InstallConfigurationTable;
+	void* LoadImage;
+	void* StartImage;
+	void* Exit;
+	void* UnloadImage;
+	void* ExitBootServices;
+	void* GetNextMonotonicCount;
+	void* Stall;
+	void* SetWatchdogTimer;
+	void* ConnectController;
+	void* DisconnectController;
+	void* OpenProtocol;
+	void* CloseProtocol;
+	void* OpenProtocolInformation;
+	void* ProtocolsPerHandle;
+	void* LocateHandleBuffer;
+	void* LocateProtocol;
+	void* InstallMultipleProtocolInterfaces;
+	void* UninstallMultipleProtocolInterfaces;
+	void* CalculateCrc32;
+	void* CopyMem;
+	void* SetMem;
+	void* CreateEventEx;
+} EFI_BOOT_SERVICES;
+
+typedef struct
+{
+	EFI_TABLE_HEADER Hdr;
 	CHAR16* FirmwareVendor;
 	UINT32 FirmwareRevision;
 	EFI_HANDLE ConsoleInHandle;
-	void* ConIn;
+	EFI_SIMPLE_TEXT_INPUT_PROTOCOL* ConIn;
 	EFI_HANDLE ConsoleOutHandle;
 	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut;
 	EFI_HANDLE StandardErrorHandle;
 	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* StdErr;
 	void* RuntimeServices;
-	void* BootServices;
+	EFI_BOOT_SERVICES* BootServices;
 	UINTN NumberOfTableEntries;
 	void* ConfigurationTable;
 } EFI_SYSTEM_TABLE;
