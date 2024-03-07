@@ -76,7 +76,7 @@ typedef EFI_STATUS (EFIAPI* EFI_TEXT_SET_ATTRIBUTE) (IN EFI_SIMPLE_TEXT_OUTPUT_P
 #define EFI_BROWN 0x06
 #define EFI_LIGHTGRAY 0x07
 #define EFI_BRIGHT 0x08
-#define EFI_DARKGRAY (EFI_BLACK | EFI_BRIGHT) 0x08
+#define EFI_DARKGRAY 0x08
 #define EFI_LIGHTBLUE 0x09
 #define EFI_LIGHTGREEN 0x0A
 #define EFI_LIGHTCYAN 0x0B
@@ -144,6 +144,16 @@ typedef struct EFI_SIMPLE_TEXT_INPUT_PROTOCOL
 
 typedef EFI_STATUS (EFIAPI* EFI_WAIT_FOR_EVENT) (IN UINTN NumberOfEvents, IN EFI_EVENT* Event, OUT UINTN* Index);
 
+typedef enum
+{
+	EfiResetCold,
+	EfiResetWarm,
+	EfiResetShutdown,
+	EfiResetPlatformSpecific
+} EFI_RESET_TYPE;
+
+typedef VOID (EFIAPI* EFI_RESET_SYSTEM) (IN EFI_RESET_TYPE ResetType, IN EFI_STATUS ResetStatus, IN UINTN DataSize, IN VOID* ResetData OPTIONAL);
+
 typedef struct
 {
 	UINT64 Signature;
@@ -152,6 +162,25 @@ typedef struct
 	UINT32 CRC32;
 	UINT32 Reserved;
 } EFI_TABLE_HEADER;
+
+typedef struct
+{
+	EFI_TABLE_HEADER Hdr;
+	void* GetTime;
+	void* SetTime;
+	void* GetWakeupTime;
+	void* SetWakeupTime;
+	void* SetVirtualAddressMap;
+	void* ConvertPointer;
+	void* GetVariable;
+	void* GetNextVariableName;
+	void* SetVariable;
+	void* GetNextHighMonotonicCount;
+	EFI_RESET_SYSTEM ResetSystem;
+	void* UpdateCapsule;
+	void* QueryCapsuleCapabilities;
+	void* QueryVariableInfo;
+} EFI_RUNTIME_SERVICES;
 
 typedef struct
 {
@@ -213,7 +242,7 @@ typedef struct
 	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut;
 	EFI_HANDLE StandardErrorHandle;
 	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* StdErr;
-	void* RuntimeServices;
+	EFI_RUNTIME_SERVICES* RuntimeServices;
 	EFI_BOOT_SERVICES* BootServices;
 	UINTN NumberOfTableEntries;
 	void* ConfigurationTable;
