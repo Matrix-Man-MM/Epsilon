@@ -1,9 +1,12 @@
 #include <stdarg.h>
 #include "efi.h"
 
+#define SCANCODE_ESC 0x17
+
 EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* cout = NULL;
 EFI_SIMPLE_TEXT_INPUT_PROTOCOL* cin = NULL;
 EFI_BOOT_SERVICES* bs;
+EFI_RUNTIME_SERVICES* rs;
 EFI_HANDLE image = NULL;
 
 void init_globals(EFI_HANDLE handle, EFI_SYSTEM_TABLE* sys_table)
@@ -11,6 +14,7 @@ void init_globals(EFI_HANDLE handle, EFI_SYSTEM_TABLE* sys_table)
 	cout = sys_table->ConOut;
 	cin = sys_table->ConIn;
 	bs = sys_table->BootServices;
+	rs = sys_table->RuntimeServices;
 	image = handle;
 }
 
@@ -78,7 +82,7 @@ bool puthex(UINTN n)
 
 bool printf(CHAR16* fmt, ...)
 {
-	bool result = false;
+	bool result = true;
 	CHAR16 charstr[2];
 	va_list args;
 
@@ -144,10 +148,7 @@ EFI_INPUT_KEY getkey(void)
 	bs->WaitForEvent(1, events, &index);
 
 	if (index == 0)
-	{
 		cin->ReadKeyStroke(cin, &key);
-		return key;
-	}
 
 	return key;
 }
@@ -199,11 +200,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
 
 			printf(u"%s ", cbuf);
 
-			if (key.ScanCode == 0x17)
-			{
-				printf(u"\r\nShutting Down...\r\n");
-				while (1);
-			}
+			if (key.ScanCode == SCANCODE_ESC)
+				rs->ResetSystem(EfiResetShutdown, EFI_SUCCESS, 0, NULL);
 
 			current_mode = key.UnicodeChar - u'0';
 			EFI_STATUS status = cout->SetMode(cout, current_mode);
