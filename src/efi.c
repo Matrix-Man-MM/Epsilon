@@ -291,13 +291,13 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
 					if (current_row - 1 >= min_row)
 					{
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(DEFAULT_FG_COLOR, DEFAULT_BG_COLOR));
-						printf(u"%s\r\n", menu_choices[current_row]);
+						printf(u"%s\r", menu_choices[current_row]);
 
 	
 						current_row--;
 						cout->SetCursorPosition(cout, 0, current_row);
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(HIGHLIGHT_FG_COLOR, HIGHLIGHT_BG_COLOR));
-						printf(u"%s\r\n", menu_choices[current_row]);
+						printf(u"%s\r", menu_choices[current_row]);
 
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(DEFAULT_FG_COLOR, DEFAULT_BG_COLOR));
 					}
@@ -307,12 +307,12 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
 					if (current_row+1 <= max_row)
 					{
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(DEFAULT_FG_COLOR, DEFAULT_BG_COLOR));
-						printf(u"%s\r\n", menu_choices[current_row]);
+						printf(u"%s\r", menu_choices[current_row]);
 
 						current_row++;
 						cout->SetCursorPosition(cout, 0, current_row);
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(HIGHLIGHT_FG_COLOR, HIGHLIGHT_BG_COLOR));
-						printf(u"%s\r\n", menu_choices[current_row]);
+						printf(u"%s\r", menu_choices[current_row]);
 
 						cout->SetAttribute(cout, EFI_TEXT_ATTR(DEFAULT_FG_COLOR, DEFAULT_BG_COLOR));
 					}
